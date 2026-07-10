@@ -7,7 +7,7 @@ simples.
 
 import json
 
-ARCHIVO_DATOS = "datos_clinica.json"
+ARCHIVO_DATOS = (NOTEBOOKS\Clase_08\datos_clinica.json)
 
 
 def calcular_promedio(suma, cantidad):
@@ -23,9 +23,10 @@ def es_adulto_mayor(edad):
 # REQUERIMIENTO 1:
 # Construya aqui la lectura del JSON con el docente.
 # Al terminar, la variable pacientes debe tener 15 registros.
-pacientes = []
+with open(ARCHIVO_DATOS,"r") as archivo:
+    pacientes = json.load(archivo)
 
-
+print(pacientes)
 # 2. Exploracion inicial
 print("Cantidad de pacientes:", len(pacientes))
 
