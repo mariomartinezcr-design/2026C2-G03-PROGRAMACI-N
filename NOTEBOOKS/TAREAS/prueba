@@ -1,0 +1,37 @@
+import pandas as pd
+import numpy as np
+
+# 1. Cargar y limpiar datos
+# Puedes descargar estos CSVs listos desde Football-Data.co.uk
+df = pd.read_csv("historical_odds.csv")
+columnas_interes = ['HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR', 'B365H', 'B365D', 'B365A']
+df = df[columnas_interes].dropna()
+
+# 2. Calcular Probabilidades Implícitas de las Casas de Apuestas (1 / Cuota)
+df['Prob_Casas_Local'] = 1 / df['B365H']
+df['Prob_Casas_Visita'] = 1 / df['B365A']
+
+# 3. Calcular Rendimiento Reciente (Últimos 5 partidos en casa / visita)
+# Creamos una métrica de goles promedio anotados acumulados
+df['Goles_Prom_Local'] = df.groupby('HomeTeam')['FTHG'].transform(lambda x: x.expanding().mean().shift(1))
+df['Goles_Prom_Visita'] = df.groupby('AwayTeam')['FTAG'].transform(lambda x: x.expanding().mean().shift(1))
+
+# 4. Definir una Estrategia de Apuesta (Ej: Apostar al local si su promedio de goles es alto y la cuota paga bien)
+# Simulamos apostar $10 si el local promedia más de 1.8 goles y la cuota es mayor a 1.50
+df['Apuesta_Local'] = np.where((df['Goles_Prom_Local'] > 1.8) & (df['B365H'] > 1.5), 10, 0)
+
+# 5. Calcular Ganancia o Pérdida (Retorno de Inversión - ROI)
+df['Resultado_Dinero'] = np.where(
+    df['Apuesta_Local'] > 0,
+    np.where(df['FTR'] == 'H', (df['B365H'] * df['Apuesta_Local']) - df['Apuesta_Local'], -df['Apuesta_Local']),
+    0
+)
+
+# 6. Estadísticas Finales del Proyecto
+total_invertido = df['Apuesta_Local'].sum()
+total_ganado_perdido = df['Resultado_Dinero'].sum()
+roi = (total_ganado_perdido / total_invertido) * 100 if total_invertido > 0 else 0
+
+print(f"Total Invertido: ${total_invertido:.2f}")
+print(f"Ganancia/Pérdida Neta: ${total_ganado_perdido:.2f}")
+print(f"ROI de la Estrategia: {roi:.2f}%")
