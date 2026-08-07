@@ -42,7 +42,7 @@ def resumir_por_tipo_entidad(datos: pd.DataFrame) -> tuple[float, pd.DataFrame]:
     """Devuelve el promedio general del diferencial y el promedio por tipo de entidad de compra venta y diferencial."""
     promedio_diferencial = datos["DIFERENCIAL"].mean()
     columnas = ["COMPRA", "VENTA", "DIFERENCIAL"]
-    promedios_por_tipo = {
+promedios_por_tipo = {
         datos.groupby("TIPO")[columnas]
         .mean()
         .round(2)
