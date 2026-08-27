@@ -1,0 +1,73 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+
+URL = "https://www.ovsicori.una.ac.cr/sistemas/sentidos_map/index.php?tipo=center"
+
+def obtener_html(url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
+    resp = requests.get(url, headers=headers, timeout=15)
+    resp.raise_for_status()
+    return resp.text
+
+def extraer_tabla(html):
+    soup = BeautifulSoup(html, "html.parser")
+
+    tablas = soup.find_all("table")
+    if not tablas:
+        print("No se encontraron tablas en la página.")
+        return None
+
+    tabla = tablas[0]
+
+    filas = []
+    for tr in tabla.find_all("tr"):
+        celdas = [c.get_text(strip=True) for c in tr.find_all(["td", "th"])]
+        if celdas:
+            filas.append(celdas)
+
+    if not filas:
+        return None
+
+    # La primera fila son los encabezados (Fecha, Hora, Magnitud, etc.)
+    encabezados = filas.pop(0)
+    n_cols = len(encabezados)
+
+    # Filtrar filas incompletas (registros truncados sin datos completos)
+    filas_validas = []
+    for fila in filas:
+        if len(fila) == n_cols:
+            filas_validas.append(fila)
+        elif len(fila) < n_cols:
+            # Rellenar con None si faltan celdas (fila truncada/incompleta)
+            fila_completa = fila + [None] * (n_cols - len(fila))
+            filas_validas.append(fila_completa)
+        else:
+            # Si sobran celdas, truncar
+            filas_validas.append(fila[:n_cols])
+
+    df = pd.DataFrame(filas_validas, columns=encabezados)
+
+    # Eliminar filas donde todos los campos (excepto Fecha) son nulos
+    df = df.dropna(subset=encabezados[1:], how="all")
+
+    return df
+
+def main():
+    html = obtener_html(URL)
+    df = extraer_tabla(html)
+
+    if df is not None:
+        print(df.head())
+        df.to_csv("sismos_sentidos.csv", index=False, encoding="utf-8-sig")
+        print(f"\nDatos guardados en 'sismos_sentidos.csv' ({len(df)} filas)")
+    else:
+        print("No se pudo extraer la tabla. Revisa la estructura del HTML.")
+        with open("pagina_debug.html", "w", encoding="utf-8") as f:
+            f.write(html)
+        print("HTML guardado en 'pagina_debug.html' para inspección.")
+
+if __name__ == "__main__":
+    main()

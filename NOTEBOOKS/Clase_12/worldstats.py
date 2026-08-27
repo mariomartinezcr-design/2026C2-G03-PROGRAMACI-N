@@ -27,3 +27,7 @@ if respuesta.status_code == 200:
 else:
   print("Error al acceder a la página:", response.status_code)
 
+df = pd.DataFrame(datos, columns=['Puesto', 'Pais', 'Porcentaje', 'Poblacion', 'Region'])
+
+
+print(df)
